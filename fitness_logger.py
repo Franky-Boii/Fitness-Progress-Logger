@@ -1,3 +1,6 @@
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import pandas as pd
@@ -80,30 +83,71 @@ def generate_weekly_pdf():
     report_date = datetime.now().strftime("%Y-%m-%d")
     file_path = f"reports/weekly_report_{report_date}.pdf"
 
-    c = canvas.Canvas(file_path, pagesize=A4)
-    width, height = A4
+    doc = SimpleDocTemplate(file_path, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
 
+    # -----------------------------
     # Title
-    c.setFont("Helvetica-Bold", 18)
-    c.drawString(150, 800, "Weekly Fitness Progress Report")
+    # -----------------------------
+    title = Paragraph("<b>Weekly Fitness Progress Report</b>", styles["Title"])
+    elements.append(title)
 
-    c.setFont("Helvetica", 12)
-    c.drawString(50, 760, f"Report Date: {report_date}")
-    c.drawString(50, 740, f"Workouts Logged: {len(last_7_days)}")
+    elements.append(
+        Paragraph(
+            f"Report Date: {report_date}<br/>Workouts Logged: {len(last_7_days)}",
+            styles["Normal"],
+        )
+    )
 
-    # Average weight per exercise
-    c.drawString(50, 700, "Average Weight per Exercise:")
+    elements.append(Paragraph("<br/>", styles["Normal"]))
 
-    avg_weights = last_7_days.groupby("exercise")["weight"].mean().round(1)
+    # -----------------------------
+    # Table Data
+    # -----------------------------
+    table_data = [["Exercise", "Avg Weight (kg)", "Total Sets"]]
 
-    y_position = 670
-    for exercise, weight in avg_weights.items():
-        c.drawString(70, y_position, f"- {exercise}: {weight} kg")
-        y_position -= 20
+    grouped = last_7_days.groupby("exercise").agg(
+        avg_weight=("weight", "mean"),
+        total_sets=("sets", "sum"),
+    )
 
-    c.save()
+    for exercise, row in grouped.iterrows():
+        table_data.append(
+            [
+                exercise,
+                round(row["avg_weight"], 1),
+                int(row["total_sets"]),
+            ]
+        )
 
-    print(f"📄 Weekly PDF report generated: {file_path}")
+    # -----------------------------
+    # Create Table
+    # -----------------------------
+    table = Table(table_data, colWidths=[200, 150, 120])
+
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.darkblue),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("ALIGN", (1, 1), (-1, -1), "CENTER"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.whitesmoke),
+            ]
+        )
+    )
+
+    elements.append(table)
+
+    # -----------------------------
+    # Build PDF
+    # -----------------------------
+    doc.build(elements)
+
+    print(f"📄 Professional weekly PDF report generated: {file_path}")
 
 
 # Main menu
