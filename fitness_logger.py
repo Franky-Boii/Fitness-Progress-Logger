@@ -1,3 +1,5 @@
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.charts.barcharts import VerticalBarChart
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
@@ -90,8 +92,7 @@ def generate_weekly_pdf():
     # -----------------------------
     # Title
     # -----------------------------
-    title = Paragraph("<b>Weekly Fitness Progress Report</b>", styles["Title"])
-    elements.append(title)
+    elements.append(Paragraph("<b>Weekly Fitness Progress Report</b>", styles["Title"]))
 
     elements.append(
         Paragraph(
@@ -103,7 +104,7 @@ def generate_weekly_pdf():
     elements.append(Paragraph("<br/>", styles["Normal"]))
 
     # -----------------------------
-    # Table Data
+    # Table Section
     # -----------------------------
     table_data = [["Exercise", "Avg Weight (kg)", "Total Sets"]]
 
@@ -112,7 +113,13 @@ def generate_weekly_pdf():
         total_sets=("sets", "sum"),
     )
 
+    exercises = []
+    avg_weights = []
+
     for exercise, row in grouped.iterrows():
+        exercises.append(exercise)
+        avg_weights.append(round(row["avg_weight"], 1))
+
         table_data.append(
             [
                 exercise,
@@ -121,33 +128,54 @@ def generate_weekly_pdf():
             ]
         )
 
-    # -----------------------------
-    # Create Table
-    # -----------------------------
     table = Table(table_data, colWidths=[200, 150, 120])
-
     table.setStyle(
         TableStyle(
             [
                 ("BACKGROUND", (0, 0), (-1, 0), colors.darkblue),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("ALIGN", (1, 1), (-1, -1), "CENTER"),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("ALIGN", (1, 1), (-1, -1), "CENTER"),
                 ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
                 ("BACKGROUND", (0, 1), (-1, -1), colors.whitesmoke),
             ]
         )
     )
 
     elements.append(table)
+    elements.append(Paragraph("<br/><br/>", styles["Normal"]))
+
+    # -----------------------------
+    # Bar Chart Section
+    # -----------------------------
+    elements.append(Paragraph("<b>Average Weight per Exercise</b>", styles["Heading2"]))
+
+    drawing = Drawing(400, 250)
+    chart = VerticalBarChart()
+
+    chart.x = 50
+    chart.y = 50
+    chart.height = 150
+    chart.width = 300
+
+    chart.data = [avg_weights]
+    chart.categoryAxis.categoryNames = exercises
+    chart.valueAxis.valueMin = 0
+    chart.valueAxis.valueMax = max(avg_weights) + 10
+    chart.valueAxis.valueStep = 10
+
+    chart.bars[0].fillColor = colors.darkblue
+
+    drawing.add(chart)
+    elements.append(drawing)
 
     # -----------------------------
     # Build PDF
     # -----------------------------
     doc.build(elements)
 
-    print(f"📄 Professional weekly PDF report generated: {file_path}")
+    print(f"📊 Weekly PDF with chart generated: {file_path}")
 
 
 # Main menu
