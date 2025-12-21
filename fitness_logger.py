@@ -12,9 +12,7 @@ import os
 DATA_FILE = "data/workouts.csv"
 
 
-# -----------------------------
 #  Ensure CSV exists
-# -----------------------------
 def ensure_data_file():
     if not os.path.exists("data"):
         os.makedirs("data")
@@ -89,9 +87,7 @@ def generate_weekly_pdf():
     styles = getSampleStyleSheet()
     elements = []
 
-    # -----------------------------
-    # Title
-    # -----------------------------
+    # Title Section
     elements.append(Paragraph("<b>Weekly Fitness Progress Report</b>", styles["Title"]))
 
     elements.append(
@@ -103,9 +99,7 @@ def generate_weekly_pdf():
 
     elements.append(Paragraph("<br/>", styles["Normal"]))
 
-    # -----------------------------
     # Table Section
-    # -----------------------------
     table_data = [["Exercise", "Avg Weight (kg)", "Total Sets"]]
 
     grouped = last_7_days.groupby("exercise").agg(
@@ -170,9 +164,7 @@ def generate_weekly_pdf():
     drawing.add(chart)
     elements.append(drawing)
 
-    # -----------------------------
     # Build PDF
-    # -----------------------------
     doc.build(elements)
 
     print(f"📊 Weekly PDF with chart generated: {file_path}")
